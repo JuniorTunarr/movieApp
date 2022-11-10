@@ -1,0 +1,13 @@
+{
+  "name": "movieExercise",
+  "displayName": "movieExercise",
+  "expo": {
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "userInterfaceStyle": "automatic"
+    },
+    "android": {
+      "userInterfaceStyle": "automatic"
+    }
+  }
+}
