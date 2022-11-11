@@ -17,7 +17,7 @@ import Slide from '../components/Slide';
 import HMedia from '../components/HMedia';
 import VMedia from '../components/VMedia';
 import styled from 'styled-components/native';
-import {MovieResponse, moviesApi} from '../api';
+import {moviesApi} from '../api';
 import {makeImgPath} from '../util';
 const API_KEY = 'fb2c84dd28cdf4cc320c4b6ed588d26e';
 
@@ -128,6 +128,7 @@ const Movies: React.FC<NativeStackScreenProps<any, 'Movies'>> = () => {
                 originalTitle={movie.original_title}
                 voteAverage={movie.vote_average}
                 overview={movie.overview}
+                fullData={movie}
               />
             ))}
           </Swiper>
@@ -146,6 +147,7 @@ const Movies: React.FC<NativeStackScreenProps<any, 'Movies'>> = () => {
           originalTitle={item.original_title}
           overview={item.overview}
           releaseDate={item.release_date}
+          fullData={item}
         />
       )}
     />

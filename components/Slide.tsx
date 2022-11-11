@@ -5,9 +5,10 @@ import {
   TouchableWithoutFeedback,
   useColorScheme,
   View,
-} from "react-native";
+} from 'react-native';
 import styled from 'styled-components/native';
-import { useNavigation } from "@react-navigation/native";
+import {Movie} from '../api';
+import {useNavigation} from '@react-navigation/native';
 import {makeImgPath} from '../util';
 import Poster from './Poster';
 
@@ -44,6 +45,7 @@ interface SlideProps {
   originalTitle: string;
   voteAverage: number;
   overview: string;
+  fullData: Movie;
 }
 
 const Slide: React.FC<SlideProps> = ({
@@ -52,24 +54,29 @@ const Slide: React.FC<SlideProps> = ({
   originalTitle,
   voteAverage,
   overview,
+  fullData,
 }) => {
   const isDark = useColorScheme() === 'dark';
   const navigation = useNavigation();
   const goToDetail = () => {
-    navigation.navigate("Stack", { screen: "Detail" });
+    navigation.navigate('Stack', {
+      screen: 'Detail',
+      params: {
+        ...fullData,
+      },
+    });
   };
   return (
     <TouchableWithoutFeedback onPress={goToDetail}>
-      <View style={{ flex: 1 }}>
+      <View style={{flex: 1}}>
         <BgImg
           style={StyleSheet.absoluteFill}
-          source={{ uri: makeImgPath(backdropPath) }}
+          source={{uri: makeImgPath(backdropPath)}}
         />
         <BlurView
-          tint={isDark ? "dark" : "light"}
+          tint={isDark ? 'dark' : 'light'}
           intensity={85}
-          style={StyleSheet.absoluteFill}
-        >
+          style={StyleSheet.absoluteFill}>
           <Wrapper>
             <Poster path={posterPath} />
             <Column>
