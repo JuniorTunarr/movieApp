@@ -1,6 +1,6 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
-import {useQuery, useQueryClient} from 'react-query';
+import {useQuery, useQueryClient, useInfiniteQuery} from 'react-query';
 import {
   ActivityIndicator,
   Dimensions,
@@ -74,10 +74,21 @@ const Movies: React.FC<NativeStackScreenProps<any, 'Movies'>> = () => {
   const [refreshing, setRefreshing] = useState(false);
   const {isLoading: nowPlayingLoading, data: nowPlayingData} =
     useQuery<MovieResponse>(['movies', 'nowPlaying'], moviesApi.nowPlaying);
-  const {isLoading: upcomingLoading, data: upcomingData} =
-    useQuery<MovieResponse>(['movies', 'upcoming'], moviesApi.upcoming);
+  const {
+    isLoading: upcomingLoading,
+    data: upcomingData,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery(['movies', 'upcoming'], moviesApi.upcoming, {
+    getNextPageParam: currentPage => {
+      const nextPage = currentPage.page + 1;
+      return nextPage > currentPage.total_pages ? null : nextPage;
+    },
+  });
+
   const {isLoading: trendingLoading, data: trendingData} =
     useQuery<MovieResponse>(['movies', 'trending'], moviesApi.trending);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await queryClient.refetchQueries(['movies']);
@@ -100,6 +111,11 @@ const Movies: React.FC<NativeStackScreenProps<any, 'Movies'>> = () => {
   );
   const movieKeyExtractor = item => item.id + '';
   const loading = nowPlayingLoading || upcomingLoading || trendingLoading;
+  const loadMore = () => {
+    if (hasNextPage) {
+      fetchNextPage();
+    }
+  };
   return loading ? (
     <Loader />
   ) : upcomingData ? (
@@ -138,7 +154,7 @@ const Movies: React.FC<NativeStackScreenProps<any, 'Movies'>> = () => {
           <ComingSoonTitle>Coming soon</ComingSoonTitle>
         </>
       }
-      data={upcomingData.results}
+      data={upcomingData.pages.map(page => page.results).flat()}
       keyExtractor={movieKeyExtractor}
       ItemSeparatorComponent={HSeparator}
       renderItem={({item}) => (
@@ -150,6 +166,8 @@ const Movies: React.FC<NativeStackScreenProps<any, 'Movies'>> = () => {
           fullData={item}
         />
       )}
+      onEndReached={loadMore}
+      // onEndReachedThreshold={0.4}
     />
   ) : null;
 };

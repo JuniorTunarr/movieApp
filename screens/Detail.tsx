@@ -2,11 +2,21 @@ import React, {useEffect} from 'react';
 import styled from 'styled-components/native';
 import {Movie, moviesApi, TV, tvApi} from '../api';
 import Poster from '../components/Poster';
-import {Dimensions, StyleSheet} from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Linking,
+  Share,
+  Platform,
+  TouchableOpacity,
+} from 'react-native';
 import {makeImgPath} from '../util';
 import {BLACK_COLOR} from '../colors';
 import LinearGradient from 'react-native-linear-gradient';
 import {useQuery} from 'react-query';
+import Loader from '../components/Loader';
+import * as WebBrowser from 'expo-web-browser';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -19,6 +29,9 @@ const Header = styled.View`
   justify-content: flex-end;
   padding: 0px 20px;
 `;
+const Data = styled.View`
+  padding: 0px 20px;
+`;
 
 const Background = styled.Image``;
 
@@ -28,15 +41,26 @@ const Column = styled.View`
 `;
 const Title = styled.Text`
   color: white;
-  font-size: 36px;
+  font-size: 30px;
   align-self: flex-end;
   margin-left: 15px;
   font-weight: 500;
 `;
+
 const Overview = styled.Text`
   color: ${props => props.theme.textColor};
-  margin-top: 20px;
-  padding: 0px 20px;
+  margin: 20px 0px;
+`;
+
+const VideoBtn = styled.TouchableOpacity`
+  flex-direction: row;
+`;
+const BtnText = styled.Text`
+  color: white;
+  font-weight: 600;
+  margin-bottom: 10px;
+  line-height: 24px;
+  margin-left: 10px;
 `;
 
 type RootStackParamList = {
@@ -49,27 +73,67 @@ const Detail: React.FC<DetailScreenProps> = ({
   navigation: {setOptions},
   route: {params},
 }) => {
-  const {isLoading: moviesLoading, data: moviesData} = useQuery(
-    ['movies', params.id],
-    moviesApi.detail,
-    {
-      enabled: 'original_title' in params,
-    },
+  const isMovie = 'original_title' in params;
+  const {isLoading, data} = useQuery(
+    [isMovie ? 'movies' : 'tv', params.id],
+    isMovie ? moviesApi.detail : tvApi.detail,
   );
-  const {isLoading: tvLoading, data: tvData} = useQuery(
-    ['tv', params.id],
-    tvApi.detail,
-    {
-      enabled: 'original_name' in params,
-    },
+  const shareMedia = async () => {
+    const isAndroid = Platform.OS === 'android';
+    const homepage = isMovie
+      ? `https://www.imdb.com/title/${data.imdb_id}/`
+      : data.homepage;
+    if (isAndroid) {
+      await Share.share({
+        message: `${params.overview}\nCheck it out: ${homepage}`,
+        title:
+          'original_title' in params
+            ? params.original_title
+            : params.original_name,
+      });
+    } else {
+      await Share.share({
+        url: homepage,
+        title:
+          'original_title' in params
+            ? params.original_title
+            : params.original_name,
+      });
+    }
+  };
+  const ShareButton = () => (
+    <TouchableOpacity onPress={shareMedia}>
+      <Icon name="share-outline" color="white" size={24} />
+    </TouchableOpacity>
   );
-  console.log('movies', moviesData);
-  console.log('tv', tvData);
   useEffect(() => {
     setOptions({
       title: 'original_title' in params ? 'Movie' : 'TV Show',
     });
   }, []);
+  useEffect(() => {
+    if (data) {
+      setOptions({
+        headerRight: () => <ShareButton />,
+      });
+    }
+  }, [data]);
+  const openYTLink = async (videoID: string) => {
+    const baseUrl = `https://m.youtube.com/watch?v=${videoID}`;
+    await Linking.openURL(baseUrl);
+    // await WebBrowser.openBrowserAsync(baseUrl);
+  };
+  // const openYTLink = async (videoID: string) => {
+  //   const baseUrl = `https://m.youtube.com/watch?v=${videoID}`;
+  //   // await Linking.openURL(baseUrl);
+  //   let browserPackage: string | undefined;
+  //   if (Platform.OS === 'android') {
+  //     const tabsSupportingBrowsers =
+  //       await WebBrowser.getCustomTabsSupportingBrowsersAsync();
+  //     browserPackage = tabsSupportingBrowsers?.defaultBrowserPackage;
+  //   }
+  //   await WebBrowser.openBrowserAsync(baseUrl, {browserPackage});
+  // };
   return (
     <Container>
       <Header>
@@ -90,7 +154,16 @@ const Detail: React.FC<DetailScreenProps> = ({
           </Title>
         </Column>
       </Header>
-      <Overview>{params.overview}</Overview>
+      <Data>
+        <Overview>{params.overview}</Overview>
+        {isLoading ? <Loader /> : null}
+        {data?.videos?.results?.map(video => (
+          <VideoBtn key={video.key} onPress={() => openYTLink(video.key)}>
+            <Icon name="logo-youtube" color="white" size={24} />
+            <BtnText>{video.name}</BtnText>
+          </VideoBtn>
+        ))}
+      </Data>
     </Container>
   );
 };
